@@ -6,7 +6,7 @@
 	"extensionKind": [
 		"ui"
 	],
-	"version": "0.0.50",
+	"version": "0.0.51",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/asvetliakov/vscode-neovim"
@@ -951,10 +951,10 @@
 		]
 	},
 	"scripts": {
-		"vscode:prepublish": "yarn run compile",
+		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",
 		"watch": "tsc -watch -p ./",
-		"pretest": "yarn run compile",
+		"pretest": "npm run compile",
 		"lint": "eslint --ext .ts src",
 		"test": "node ./out/test/runTest.js"
 	},
