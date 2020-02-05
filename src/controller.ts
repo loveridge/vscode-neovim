@@ -764,26 +764,26 @@ export class NVIMPluginController implements vscode.Disposable {
         if (gridConf[1].cursorLine === cursor.line && gridConf[1].cursorPos === cursor.character) {
             return;
         }
+        const lastSelection = e.selections.slice(-1)[0];
+        if (!lastSelection) {
+            return;
+        }
+        const firstPos = e.selections[0].anchor;
+        const requests: [string, unknown[]][] = [];
         // multi-selection
         if (e.selections.length > 1 || !e.selections[0].active.isEqual(e.selections[0].anchor)) {
             if (e.kind !== vscode.TextEditorSelectionChangeKind.Mouse || !this.mouseSelectionEnabled) {
                 return;
             } else {
-                const requests: [string, unknown[]][] = [];
                 if (this.currentModeName !== "visual") {
                     // need to start visual mode from anchor char
-                    const firstPos = e.selections[0].anchor;
-                    const mouseClickPos = this.getNeovimCursorPosForEditor(e.textEditor, firstPos);
+                    requests.push(["nvim_input", ["<Esc>"]]);
                     requests.push([
                         "nvim_input_mouse",
                         // nvim_input_mouse is zero based while getNeovimCursorPosForEditor() returns 1 based line
-                        ["left", "press", "", gridConf[0], mouseClickPos[0] - 1, mouseClickPos[1]],
+                        ["left", "press", "", gridConf[0], firstPos.line, firstPos.character + 8],
                     ]);
                     requests.push(["nvim_input", ["v"]]);
-                }
-                const lastSelection = e.selections.slice(-1)[0];
-                if (!lastSelection) {
-                    return;
                 }
                 requests.push([
                     "nvim_win_set_cursor",
@@ -798,7 +798,15 @@ export class NVIMPluginController implements vscode.Disposable {
                 createJumpEntry = false;
                 this.skipJumpsForUris.delete(e.textEditor.document.uri.toString());
             }
-            this.updateCursorPositionInNeovim(winId, this.getNeovimCursorPosForEditor(e.textEditor), createJumpEntry);
+            requests.push(["nvim_input", ["<Esc>"]]);
+            requests.push([
+                "nvim_win_set_cursor",
+                [winId, this.getNeovimCursorPosForEditor(e.textEditor, lastSelection.active)],
+            ]);
+            if (createJumpEntry) {
+                requests.push(["nvim_call_function", ["VSCodeStoreJumpForWin", [winId]]]);
+            }
+            this.client.callAtomic(requests);
         }
 
         // let shouldUpdateNeovimCursor = false;
